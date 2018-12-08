@@ -1,5 +1,7 @@
 import torch
 import numpy as np
+
+import nltk
 from nltk.tokenize import RegexpTokenizer
 
 def tokenize_corpus(corpus, tokenizer = RegexpTokenizer(u'(?ui)\\b[a-z]{3,}\\b')):

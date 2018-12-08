@@ -5,7 +5,7 @@ from torch.nn import Parameter
 import torch.nn.functional as F
 
 class BSG(nn.Module):
-    def __init__(self, unigram_dict, vocab_size, input_dim=50, hidden_dim=50, latent_dim=100, margin=1., model_name='BSG with the hinge loss'):
+    def __init__(self, window, unigram_dict, vocab_size, input_dim=50, hidden_dim=50, latent_dim=100, margin=1., model_name='BSG with the hinge loss'):
         super().__init__()
         """
         :param vocab_size: the number of unique words
@@ -15,6 +15,7 @@ class BSG(nn.Module):
         :param margin: margin constant present in the hinge loss
         """
         self.model_name = model_name
+        self.window = window
         self.vocab_size = vocab_size
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
@@ -42,7 +43,7 @@ class BSG(nn.Module):
             embed_center = self.encoder_embedding(center)
             embed_context = self.encoder_embedding(context)
             assert embed_context.shape[1] == self.input_dim, "context embedding is not a 2d tensor"
-            center_repeats = embed_center.repeat(2*window, 1)
+            center_repeats = embed_center.repeat(2*self.window, 1)
             concat = torch.cat((embed_context, center_repeats),1)
             sum_relu_en1 = F.relu(self.encoder_lin1(concat)).sum(0) # a vector
             sums.append(sum_relu_en1) # the vectors of sums
@@ -69,12 +70,12 @@ class BSG(nn.Module):
         return KLD
 
     def forward(self, centers_batch, contexts_batch):
-        mu, logsigma = model.encoder(centers_batch, contexts_batch)
+        mu, logsigma = self.encoder(centers_batch, contexts_batch)
         # repeat mu, logsigma 2*window times,
         #  one for each context word in an input
         #  - do this for each input in the batch
-        mus = mu.repeat(1,window*2).view(-1,mu.shape[1])
-        logsigmas = logsigma.repeat(1,window*2).view(-1,logsigma.shape[1])
+        mus = mu.repeat(1,self.window*2).view(-1,mu.shape[1])
+        logsigmas = logsigma.repeat(1,self.window*2).view(-1,logsigma.shape[1])
         # compute KLs
         KL_contexts = self.KL(contexts_batch.view([-1,1]), mus, logsigmas)
         negative_contexts_batch = self.unigram_dist.sample(contexts_batch.shape) + 1
