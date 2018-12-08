@@ -1,3 +1,9 @@
+import torch
+import torch.nn as nn
+from torch.autograd import Variable
+from torch.nn import Parameter
+import torch.nn.functional as F
+
 class BSG(nn.Module):
     def __init__(self, unigram_dict, vocab_size, input_dim=50, hidden_dim=50, latent_dim=100, margin=1., model_name='BSG with the hinge loss'):
         super().__init__()

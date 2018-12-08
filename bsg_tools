@@ -1,0 +1,12 @@
+import torch
+import numpy as np
+from nltk.tokenize import RegexpTokenizer
+
+def tokenize_corpus(corpus, tokenizer = RegexpTokenizer(u'(?ui)\\b[a-z]{3,}\\b')):
+    assert type(tokenizer) == nltk.tokenize.regexp.RegexpTokenizer, \
+    "tokenizer type is not nltk.tokenize.regexp.RegexpTokenizer"
+    tokenized_corpus = [tokenizer.tokenize(document.lower()) for document in corpus]
+    flattened = [word for document in tokenized_corpus for word in document]
+    vocabulary = set(flattened)
+    vocabulary = list(vocabulary)
+    return vocabulary, tokenized_corpus
