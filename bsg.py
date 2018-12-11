@@ -27,29 +27,29 @@ class BSG(nn.Module):
         self.unigram_dist = torch.distributions.Categorical(torch.tensor(list(unigram_dict.values())))
 
         # encoder layers
-        self.encoder_embedding = nn.Embedding(self.vocab_size, self.input_dim, padding_idx = 0) # R
+        self.encoder_embedding = nn.Embedding(self.vocab_size+1, self.input_dim, padding_idx = 0) # R
         self.encoder_lin1 = nn.Linear(self.input_dim*2, self.hidden_dim) # M
         self.encoder_mu = nn.Linear(self.hidden_dim, self.latent_dim) # U -> mu
         self.encoder_logsigma = nn.Linear(self.hidden_dim, 1) # W -> log sigma
 
         # word embeddings' parameters for normal distributions of word types
-        self.type_means = nn.Embedding(self.vocab_size, self.latent_dim)
-        self.type_logvars = nn.Embedding(self.vocab_size, 1)
-
+        self.type_means = nn.Embedding(self.vocab_size+1, self.latent_dim)
+        self.type_logvars = nn.Embedding(self.vocab_size+1, 1)
 
     def encoder(self, centers_batch, contexts_batch):
-        sums = []
-        for center, context in zip(centers_batch, contexts_batch):
-            embed_center = self.encoder_embedding(center)
-            embed_context = self.encoder_embedding(context)
-            assert embed_context.shape[1] == self.input_dim, "context embedding is not a 2d tensor"
-            center_repeats = embed_center.repeat(2*self.window, 1)
-            concat = torch.cat((embed_context, center_repeats),1)
-            sum_relu_en1 = F.relu(self.encoder_lin1(concat)).sum(0) # a vector
-            sums.append(sum_relu_en1) # the vectors of sums
-        sums = torch.stack(sums)
-        mu = self.encoder_mu(sums)
-        logsigma = self.encoder_logsigma(sums)
+#             batch_size = centers_batch.shape[0]
+        b, C = contexts_batch.shape
+        assert C == 2*self.window, "C does not equal 2*window"
+        embed_centers = self.encoder_embedding(centers_batch)
+        centers_with_3rd_dim = embed_centers.unsqueeze(1) # batch by 1 by hidden
+        repr_center = centers_with_3rd_dim.repeat(1, C, 1) # centers as a matrix
+        repr_context = self.encoder_embedding(contexts_batch)
+
+        repr_common = torch.cat((repr_center, repr_context), 2)
+
+        hidden = F.relu(self.encoder_lin1(repr_common)).sum(1) # ?
+        mu = self.encoder_mu(hidden)
+        logsigma = self.encoder_logsigma(hidden)
         return mu, logsigma
 
     def reparameterize(self, centers_batch, posterior_mean, posterior_logvar):
