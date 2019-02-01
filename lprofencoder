@@ -1,0 +1,23 @@
+Timer unit: 1e-06 s
+
+Total time: 0.001356 s
+File: /Users/kristyn/Desktop/Python/bsg_pytorch/bsg.py
+Function: encoder at line 39
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+    39                                               def encoder(self, centers_batch, contexts_batch):
+    40                                           #             batch_size = centers_batch.shape[0]
+    41         1          4.0      4.0      0.3          b, C = contexts_batch.shape
+    42         1          1.0      1.0      0.1          assert C == 2*self.window, "C does not equal 2*window"
+    43         1        242.0    242.0     17.8          embed_centers = self.encoder_embedding(centers_batch)
+    44         1        172.0    172.0     12.7          centers_with_3rd_dim = embed_centers.unsqueeze(1) # batch by 1 by hidden
+    45         1        350.0    350.0     25.8          repr_center = centers_with_3rd_dim.repeat(1, C, 1) # centers as a matrix
+    46         1         95.0     95.0      7.0          repr_context = self.encoder_embedding(contexts_batch)
+    47                                           
+    48         1         23.0     23.0      1.7          repr_common = torch.cat((repr_center, repr_context), 2)
+    49                                           
+    50         1        261.0    261.0     19.2          hidden = F.relu(self.encoder_lin1(repr_common)).sum(1) # ?
+    51         1         93.0     93.0      6.9          mu = self.encoder_mu(hidden)
+    52         1        113.0    113.0      8.3          logsigma = self.encoder_logsigma(hidden)
+    53         1          2.0      2.0      0.1          return mu, logsigma

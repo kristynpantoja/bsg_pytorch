@@ -1,0 +1,25 @@
+Timer unit: 1e-06 s
+
+Total time: 0.077931 s
+File: /Users/kristyn/Desktop/Python/bsg_pytorch/bsg.py
+Function: forward at line 72
+
+Line #      Hits         Time  Per Hit   % Time  Line Contents
+==============================================================
+    72                                               def forward(self, centers_batch, contexts_batch):
+    73         1      65395.0  65395.0     83.9          mu, logsigma = self.encoder(centers_batch, contexts_batch)
+    74                                                   # repeat mu, logsigma 2*window times,
+    75                                                   #  one for each context word in an input
+    76                                                   #  - do this for each input in the batch
+    77         1         78.0     78.0      0.1          mus = mu.repeat(1,self.window*2).view(-1,mu.shape[1])
+    78         1         50.0     50.0      0.1          logsigmas = logsigma.repeat(1,self.window*2).view(-1,logsigma.shape[1])
+    79                                                   # compute KLs
+    80         1       2815.0   2815.0      3.6          KL_contexts = self.KL(contexts_batch.view([-1,1]), mus, logsigmas)
+    81         1        506.0    506.0      0.6          negative_contexts_batch = self.unigram_dist.sample(contexts_batch.shape) + 1
+    82         1       2521.0   2521.0      3.2          KL_negative_contexts = self.KL(negative_contexts_batch.view([-1,1]), mus, logsigmas)
+    83         1       1187.0   1187.0      1.5          KL_center_word = self.KL(centers_batch, mu, logsigma)
+    84                                           
+    85                                                   # compute hard margin of KLs of negative and positive context words
+    86         1         29.0     29.0      0.0          hard_margin_arg = KL_contexts - KL_negative_contexts + self.margin
+    87         1       4548.0   4548.0      5.8          loss = torch.max(hard_margin_arg, torch.zeros_like(hard_margin_arg)).sum() + KL_center_word.sum()
+    88         1        802.0    802.0      1.0          return loss / centers_batch.shape[0]
